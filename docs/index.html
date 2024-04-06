@@ -46,8 +46,7 @@
             document.querySelector("header h1").addEventListener("click", () => {
                 location.hash = ""
                 location = location;
-                location.pathname = location.pathname.replace(/\/player.html\/?$/, "/index.html")
-            })
+            });
             
             DROPDOWN.addEventListener("change", ev => {
                 let v = DROPDOWN.selectedOptions[0].value;
@@ -102,8 +101,7 @@
                     let tr = create_row(name, seasons, hof, last_season_worn);
                     TABLE_BODY.appendChild(tr)
                     tr.addEventListener("click", () => {
-                        let prefix = `${location.protocol}${location.host}`;
-                        let path = location.pathname.replace(/\/(index.html)?\/?/, "/player.html");
+                        let path = location.pathname.replace(/\/(index.html)?\/?$/, "/player.html");
                         let encoded_name = encodeURIComponent(name);
                         location.hash = encoded_name;
                         location.pathname = `${path}`;
