@@ -101,10 +101,14 @@
                     let tr = create_row(name, seasons, hof, last_season_worn);
                     TABLE_BODY.appendChild(tr)
                     tr.addEventListener("click", () => {
-                        let path = location.pathname.replace(/\/(index.html)?\/?$/, "/player.html");
+                        let path = location.pathname;
+                        let index_idx = path.indexOf("index.html")
+                        if (index_idx > -1) {
+                            path = path.substring(0, index_idx)
+                        }
                         let encoded_name = encodeURIComponent(name);
                         location.hash = encoded_name;
-                        location.pathname = `${path}`;
+                        location.pathname = `${path}/player.html`;
                     });
                 }
             }
