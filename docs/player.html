@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+        <style>
+            :root {
+                --accent: red;
+                --bg: blue;
+                --text: white;
+                --accent-bg: red;
+            }
+            h1 {
+                cursor: pointer;
+            }
+        </style>
+    <body>
+        <header>
+            <h1>Who wore that number?</h1>
+        </header>
+        <main>
+            <h2 id="player-name"></h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Team</th>
+                        <th>Seasons</th>
+                    </tr>
+                </thead>
+                <tbody id="data-body"></tbody>
+            </table>
+        </main>
+        <script type="module">
+            const DATA_KEY = "who-wore-nba-data";
+            const HEADER = document.getElementById("player-name");
+            const TABLE_BODY = document.getElementById("data-body");
+            let redirect_to_index = () => {
+                location.hash = "";
+                location.pathname = location.pathname.replace("player.html", "index.html");
+            }
+            document.querySelector("header h1").addEventListener("click", redirect_to_index)
+
+            if (location.hash.length == 0) {
+                redirect_to_index();
+            }
+            const player_name = decodeURIComponent(location.hash).replace("#", "")
+            HEADER.innerText = player_name;
+            
+            let update_data = () => {
+                while (TABLE_BODY.hasChildNodes()) {
+                    TABLE_BODY.removeChild(TABLE_BODY.firstChild);
+                }
+                let all_numbers_raw = localStorage.getItem(DATA_KEY);
+                if (!all_numbers_raw) {
+                    fetch_numbers();
+                    return;
+                }
+                let all_numbers = JSON.parse(all_numbers_raw);
+                let sortable = [];
+                for (let num of Object.getOwnPropertyNames(all_numbers)) {
+                    for (let name of Object.getOwnPropertyNames(all_numbers[num])) {
+                        if (name == player_name) {
+                            let player = all_numbers[num][name];
+                            for (let team of player.teams) {
+                                sortable.push({num, team: team.name, seasons: team.seasons });
+                            }
+                        }
+                    }
+                    
+                }
+                sortable.sort((l, r) => {
+                    if (l.num == r.num) {
+                        let first = Math.min(...r.seasons);
+                        let last = Math.max(...l.seasons);
+                        return last - first;
+                    }
+                    return r.num.localeCompare(l, r);
+                });
+                for (let {num, team, seasons} of sortable) {
+                    TABLE_BODY.appendChild(create_row(num, team, seasons.join(", ")));
+                }
+            }
+
+            let create_row = (...data) => {
+                let tr = document.createElement("tr");
+                for (let d of data) {
+                    let td1 = document.createElement("td");
+                    td1.innerText = d;
+                    tr.appendChild(td1);
+                }
+                return tr;
+            };
+            let fetch_numbers = async () => {
+                let all_numbers = await fetch("./all.json").then(r => r.json());
+                localStorage.setItem(DATA_KEY, JSON.stringify(all_numbers));
+                update_data();
+            }
+            update_data();
+        </script>
+    </body>
+</html>

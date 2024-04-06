@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+        <style>
+            :root {
+                --accent: red;
+                --bg: blue;
+                --text: white;
+                --accent-bg: red;
+            }
+            h1,tr>td {
+                cursor: pointer;
+            }
+        </style>
+    <body>
+        <header>
+            <h1>Who wore that number?</h1>
+        </header>
+        <main>
+            <div id="controls">
+                <div>
+                    <label for="number-dropdown">Which number?</label>
+                    <select aria-controls="data-table" id="number-dropdown"></select>
+                </div>
+            </div>
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Seasons</th>
+                        <th>HOF</th>
+                        <th>Last Season Worn</th>
+                    </tr>
+                </thead>
+                <tbody id="data-body"></tbody>
+            </table>
+        </main>
+        <script type="module">
+            /** @type HTMLSelectElement */
+            const DROPDOWN = document.getElementById("number-dropdown");
+            const TABLE_BODY = document.getElementById("data-body");
+            const LAST_SELECTED_KEY = "who-wore-nba-last-selected-number";
+            const DATA_KEY = "who-wore-nba-data";
+            location.hash = "";
+            document.querySelector("header h1").addEventListener("click", () => {
+                location.hash = ""
+                location = location;
+                location.pathname = location.pathname.replace(/\/player.html\/?$/, "/index.html")
+            })
+            
+            DROPDOWN.addEventListener("change", ev => {
+                let v = DROPDOWN.selectedOptions[0].value;
+                localStorage.setItem(LAST_SELECTED_KEY, v);
+                update_data(v);
+            });
+
+            let setup_select = () => {
+                let last_n = localStorage.getItem(LAST_SELECTED_KEY) ?? "00";
+                let idx = 0;
+                for (let i = -1; i < 100; i++) {
+                    let n = i == -1 ? "00" : i.toString();
+                    if (n == last_n) {
+                        idx = i+1;
+                    }
+                    let opt = document.createElement("option");
+                    opt.setAttribute("value", n);
+                    opt.innerText = n;
+                    DROPDOWN.appendChild(opt);
+                }
+                
+                DROPDOWN.selectedIndex = idx;
+            }
+            
+            let all_numbers = {}
+            let update_data = (num) => {
+                while (TABLE_BODY.hasChildNodes()) {
+                    TABLE_BODY.removeChild(TABLE_BODY.firstChild);
+                }
+                let players = all_numbers[num];
+                let sortable = [];
+                for (let name of Object.getOwnPropertyNames(players)) {
+                    let player = players[name];
+                    let seasons = 0;
+                    let last_season_worn = -1
+                    for (let team of player.teams) {
+                        seasons += team.seasons.length;
+                        last_season_worn = Math.max(last_season_worn, ...team.seasons);
+                    }
+                    sortable.push({name, seasons, hof: player.hof, last_season_worn});
+                }
+                sortable.sort((l, r) => {
+                    if (l.hof && !r.hof) {
+                        return -1;
+                    }
+                    if (!l.hof && r.hof) {
+                        return 1;
+                    }
+                    return r.seasons - l.seasons
+                });
+                for (let {name, seasons, hof, last_season_worn} of sortable) {
+                    let tr = create_row(name, seasons, hof, last_season_worn);
+                    TABLE_BODY.appendChild(tr)
+                    tr.addEventListener("click", () => {
+                        let prefix = `${location.protocol}${location.host}`;
+                        let path = location.pathname.replace(/\/(index.html)?\/?/, "/player.html");
+                        let encoded_name = encodeURIComponent(name);
+                        location.hash = encoded_name;
+                        location.pathname = `${path}`;
+                    });
+                }
+            }
+
+            let create_row = (...data) => {
+                let tr = document.createElement("tr");
+                for (let d of data) {
+                    let td1 = document.createElement("td");
+                    td1.innerText = d;
+                    tr.appendChild(td1);
+                }
+                return tr;
+            };
+            (async () => {
+                setup_select();
+                all_numbers = await fetch("./all.json").then(r => r.json());
+                localStorage.setItem(DATA_KEY, JSON.stringify(all_numbers));
+                let n = localStorage.getItem(LAST_SELECTED_KEY) ?? "00";
+                update_data(n);
+            })().catch(console.error);
+        </script>
+    </body>
+</html>
