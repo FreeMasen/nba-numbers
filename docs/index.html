@@ -106,9 +106,10 @@
                         if (index_idx > -1) {
                             path = path.substring(0, index_idx)
                         }
+                        
                         let encoded_name = encodeURIComponent(name);
                         location.hash = encoded_name;
-                        location.pathname = `${path}/player.html`;
+                        location.pathname = `${path}/player.html`.replace("//", "/");
                     });
                 }
             }
